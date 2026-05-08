@@ -13,7 +13,7 @@ lib/
 ├── main.dart
 ├── browser/
 │   ├── webview_adapter.dart       # platform-agnostic webview surface
-│   └── webview_adapter_impl.dart  # concrete impl (TBD: webview_flutter vs flutter_inappwebview)
+│   └── webview_flutter_adapter.dart  # concrete impl over `webview_flutter` package
 ├── tabs/
 │   ├── tab.dart                   # Tab model (Freezed)
 │   ├── tab_manager_cubit.dart     # active-tab + open-tabs state
@@ -35,7 +35,7 @@ test/
 | Decision | Choice | Rationale |
 |----------|--------|-----------|
 | State management | Bloc/Cubit | Toolkit's Flutter convention; bloc_test makes state-transition tests cheap |
-| Webview package | TBD (M1 ADR) | `webview_flutter` covers iOS/Android cleanly but no macOS; `flutter_inappwebview` covers all three with one API |
+| Webview package | `webview_flutter` ^4.13.1 | Official Flutter team package; supports iOS 13+, Android SDK 24+, macOS 10.15+ — single dep covers all targets, smaller API surface than `flutter_inappwebview` |
 | Models | Freezed + json_serializable | Idiomatic for Bloc state; codegen via `make codegen` (added when introduced) |
 | Navigation | Single shell — no router yet | One screen: tab strip + active webview |
 
@@ -108,17 +108,19 @@ class TabManagerState with _$TabManagerState {
 | flutter_bloc | TBD | State management (added in M1) |
 | freezed / freezed_annotation | TBD | Data classes (added in M1) |
 | build_runner | TBD | Codegen (dev, added in M1) |
-| webview package | TBD (M1 ADR) | Webview embedding |
+| webview_flutter | ^4.13.1 | Webview embedding (official Flutter package; iOS 13+ / Android SDK 24+ / macOS 10.15+) |
 
 ## 6. Risks & Considerations
 
-- Webview package choice is platform-coverage-driven: `webview_flutter` skips macOS; `flutter_inappwebview` adds maintenance / API surface but covers all three. Decided in M1 ADR.
+- Platform deployment targets locked by `webview_flutter` 4.13.1: iOS 13+, Android `minSdkVersion` 24, macOS 10.15+. Flutter's defaults must be aligned (iOS Podfile, `android/app/build.gradle.kts`, `macos/Runner/AppInfo.xcconfig`) before any webview test can run on device.
+- `webview_flutter` 4.x splits responsibilities across `WebViewController` + per-platform `PlatformWebViewControllerCreationParams`. Tab-state mapping (per-tab controller lifecycle, restore on tab re-select) is non-trivial — covered by the cubit + adapter design but warrants integration tests, not just unit.
 - iOS WKWebView has stricter cookie / cross-origin behavior than Android's WebView — feature parity must be tested per platform.
 - macOS desktop webviews have keyboard / focus quirks distinct from mobile; widget tests cannot fully catch these — manual verification per platform expected.
+- Disposing a webview controller on tab close is async; back-to-back close+open of the last tab is a known race-prone path — must be covered by cubit tests.
 
 ## Architecture Decision Records
 
 | Decision | Options Considered | Choice | Rationale |
 |----------|-------------------|--------|-----------|
 | State management | Bloc, Riverpod, Provider | Bloc/Cubit | Toolkit's Flutter convention; bloc_test affords cheap state-transition tests |
-| Webview package | webview_flutter, flutter_inappwebview, desktop_webview_window | TBD (M1) | macOS coverage required; decision deferred to M1 |
+| Webview package | webview_flutter, flutter_inappwebview, hybrid (webview_flutter + macOS-specific) | `webview_flutter` ^4.13.1 | Official Flutter team package; current 4.x line covers iOS 13+, Android SDK 24+, macOS 10.15+ — a single dep covers all three target platforms. Smaller API surface than `flutter_inappwebview` (cookies / JS bridge / devtools not in scope for the M1 simple browser). Hybrid rejected as needless abstraction once `webview_flutter` is single-package sufficient. |

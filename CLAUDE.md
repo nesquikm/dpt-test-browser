@@ -74,7 +74,7 @@ fvm flutter analyze && fvm flutter test
 ## Key Patterns
 
 - Always invoke Flutter via `fvm flutter` (never bare `flutter`) — version is pinned via `.fvmrc`.
-- Webview implementation choice deferred to `/spec-write` — candidates: `webview_flutter` (iOS/Android), `flutter_inappwebview` (cross-platform incl. macOS).
+- Webview package locked to `webview_flutter` ^4.13.1 (ADR in technical-spec.md) — covers iOS 13+ / Android SDK 24+ / macOS 10.15+.
 - Tab state managed via Bloc/Cubit (decision in technical-spec.md ADR).
 - Per-tab webview lifecycle owned by the tab itself; manager keeps lightweight tab metadata.
 
