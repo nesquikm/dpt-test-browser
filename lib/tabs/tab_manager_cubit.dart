@@ -64,6 +64,12 @@ class TabManagerCubit extends Cubit<TabManagerState> {
     _updateTab(tabId, (t) => t.copyWith(isLoading: isLoading));
   }
 
+  /// Updates the title of [tabId]. Emits nothing when [tabId] is not found.
+  /// Lands `WebviewAdapter.onTitleChanged` events on the cubit.
+  void setTitle(String tabId, String title) {
+    _updateTab(tabId, (t) => t.copyWith(title: title));
+  }
+
   // ---------------------------------------------------------------------------
   // Private helpers
   // ---------------------------------------------------------------------------

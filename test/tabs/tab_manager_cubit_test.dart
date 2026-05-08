@@ -230,4 +230,43 @@ void main() {
       expect: () => <TabManagerState>[],
     );
   });
+
+  // ---------------------------------------------------------------------------
+  // AC-STE-254.9: setTitle (added by STE-257 to land onTitleChanged events).
+  // ---------------------------------------------------------------------------
+  group('setTitle', () {
+    blocTest<TabManagerCubit, TabManagerState>(
+      'sets the title for the matching tab',
+      build: () => TabManagerCubit(),
+      act: (cubit) async {
+        await cubit.openTab(Uri.parse('https://a.com'));
+        final tabId = cubit.state.tabs.first.id;
+        cubit.setTitle(tabId, 'A site');
+      },
+      verify: (cubit) {
+        expect(cubit.state.tabs.first.title, equals('A site'));
+      },
+    );
+
+    blocTest<TabManagerCubit, TabManagerState>(
+      'overwrites a previous title',
+      build: () => TabManagerCubit(),
+      act: (cubit) async {
+        await cubit.openTab(Uri.parse('https://a.com'));
+        final tabId = cubit.state.tabs.first.id;
+        cubit.setTitle(tabId, 'first');
+        cubit.setTitle(tabId, 'second');
+      },
+      verify: (cubit) {
+        expect(cubit.state.tabs.first.title, equals('second'));
+      },
+    );
+
+    blocTest<TabManagerCubit, TabManagerState>(
+      'no-op: setTitle on a missing id emits no state',
+      build: () => TabManagerCubit(),
+      act: (cubit) => cubit.setTitle('non-existent-id', 'whatever'),
+      expect: () => <TabManagerState>[],
+    );
+  });
 }
