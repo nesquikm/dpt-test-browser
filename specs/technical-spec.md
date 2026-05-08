@@ -79,7 +79,8 @@ class TabManagerState with _$TabManagerState {
 
 - `loadUrl(Uri url)`
 - `goBack() / goForward() / reload()`
-- streams: `onLoadStart`, `onLoadFinish`, `onTitleChanged`.
+- `dispose()` — releases the underlying controller and closes streams; post-dispose calls are no-ops.
+- streams: `onLoadStart`, `onLoadFinish`, `onTitleChanged`, `onLoadError` (carries `Uri url`, `int? code`, `String message`).
 
 ## 4. Key Patterns
 

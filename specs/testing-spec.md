@@ -58,5 +58,5 @@ test/
 ## 5. Test Data
 
 - **URL fixtures:** `test/fixtures/urls.dart` — known-good and malformed URLs for parser tests.
-- **Fake webview adapter:** `test/fakes/fake_webview_adapter.dart` — implements the `WebviewAdapter` interface, drives `onLoadStart` / `onLoadFinish` synchronously.
+- **Fake webview adapter:** `test/fakes/fake_webview_adapter.dart` — implements the `WebviewAdapter` interface, exposes `emitLoadStart` / `emitLoadFinish` / `emitTitleChanged` / `emitLoadError` to drive the four streams synchronously.
 - **Frozen time:** not needed in M1 (no time-sensitive logic).
