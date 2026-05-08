@@ -10,6 +10,15 @@ import 'package:dpt_test_browser/browser/webview_flutter_adapter.dart';
 import 'package:dpt_test_browser/tabs/tab.dart';
 import 'package:dpt_test_browser/tabs/tab_manager_cubit.dart';
 
+/// Callback fired exactly once per [BrowserTabView] mount, after the adapter
+/// is constructed and before the first frame, so the shell can register the
+/// per-tab adapter for address-bar wiring.
+typedef OnAdapterReady = void Function(String tabId, WebviewAdapter adapter);
+
+/// Callback fired when a [BrowserTabView] is unmounted — the shell removes
+/// the adapter entry it registered via [OnAdapterReady].
+typedef OnAdapterDisposed = void Function(String tabId);
+
 /// Per-tab webview surface. Owns the [WebviewAdapter] for `tab` — built in
 /// `initState`, disposed in `dispose`. Mounts a [WebViewWidget] when the
 /// underlying adapter is the real `webview_flutter` impl; falls back to an
@@ -23,16 +32,23 @@ class BrowserTabView extends StatefulWidget {
     super.key,
     required this.tab,
     this.adapterFactory,
-    this.adapterSink,
+    this.onAdapterReady,
+    this.onAdapterDisposed,
   });
 
   final BrowserTab tab;
   final WebviewAdapterFactory? adapterFactory;
 
-  /// Optional sink the parent uses to read the per-tab adapter (so the
-  /// address bar can drive back / forward / reload on it). Set in
-  /// `initState`; cleared in `dispose`.
-  final ValueNotifier<WebviewAdapter?>? adapterSink;
+  /// Invoked after the adapter is constructed so the shell can register it
+  /// for address-bar wiring under the keep-alive (`IndexedStack`) layout.
+  /// Replaces the older `adapterSink` "publish on init / clear on dispose"
+  /// pattern, which raced when N tab views were mounted simultaneously.
+  final OnAdapterReady? onAdapterReady;
+
+  /// Invoked from `dispose` so the shell can drop the adapter entry it
+  /// registered via [onAdapterReady]. The adapter itself is disposed by
+  /// this widget — the shell should not call `adapter.dispose()`.
+  final OnAdapterDisposed? onAdapterDisposed;
 
   @override
   State<BrowserTabView> createState() => _BrowserTabViewState();
@@ -50,14 +66,13 @@ class _BrowserTabViewState extends State<BrowserTabView> {
   void initState() {
     super.initState();
     adapter = (widget.adapterFactory ?? WebviewFlutterAdapter.new)();
-    final sink = widget.adapterSink;
-    if (sink != null) {
-      // Defer the notify by one frame — assigning during initState fires
+    final onReady = widget.onAdapterReady;
+    if (onReady != null) {
+      // Defer the notify by one frame — invoking during initState fires
       // listeners during the current build, which trips Flutter's
-      // "setState() during build" assertion in any ValueListenableBuilder
-      // upstream.
+      // "setState() during build" assertion in any rebuild upstream.
       SchedulerBinding.instance.addPostFrameCallback((_) {
-        if (mounted) sink.value = adapter;
+        if (mounted) onReady(widget.tab.id, adapter);
       });
     }
     _cubit = context.read<TabManagerCubit>();
@@ -83,19 +98,21 @@ class _BrowserTabViewState extends State<BrowserTabView> {
       setState(() => _error = error);
     }));
 
-    // Kick off the initial load for this tab.
+    // Kick off the initial load for this tab — fires immediately even for
+    // tabs that aren't currently active under the keep-alive layout.
     adapter.loadUrl(widget.tab.url);
   }
 
   @override
   void dispose() {
-    final sink = widget.adapterSink;
-    if (sink != null && sink.value == adapter) {
-      // Defer the clear by one frame for the same reason as initState's
-      // assignment — notifying listeners while the framework is locked
+    final onDisposed = widget.onAdapterDisposed;
+    if (onDisposed != null) {
+      // Defer the callback by one frame for the same reason as initState's
+      // notify — notifying listeners while the framework is locked
       // (mid-unmount) would trip its assertion.
+      final tabId = widget.tab.id;
       SchedulerBinding.instance.addPostFrameCallback((_) {
-        if (sink.value == adapter) sink.value = null;
+        onDisposed(tabId);
       });
     }
     for (final s in _subs) {
