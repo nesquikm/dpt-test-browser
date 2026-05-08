@@ -110,13 +110,15 @@ Refs: <LINEAR-TICKET-ID>
 
 mode: linear
 mcp_server: linear-server
-team: <deferred>
-project: <deferred>
 branch_template: {type}/{ticket-id}-{slug}
 
-<!-- Linear MCP registered at /setup time but not yet authenticated.
-     Run `/mcp` → linear-server → authenticate, then
-     `/setup --resume-tracker-binding` to populate team/project. -->
+### Linear
+
+team: STE
+project: dpt-test-browser
+team_id: e1181251-2fe2-42b2-9a69-288a28732554
+project_id: e809f61b-ef73-41d7-97f5-8120f806094c
+project_url: https://linear.app/stellarlab-mikes-sandbox/project/dpt-test-browser-996b40b1a267
 
 ## Docs
 
@@ -148,8 +150,8 @@ files:
 | 2 | platforms | macos,ios,android | user-supplied | false | true | AskUserQuestion answered "macOS desktop, iOS, Android" |
 | 2 | toolchain | fvm | user-supplied | false | true | AskUserQuestion answered "fvm (Recommended)" |
 | 7b | tracker_mode | linear | user-supplied | false | true | AskUserQuestion answered "linear" |
-| 7b | team | <deferred> | default-applied | true | false | linear-server registered mid-/setup but unauthenticated; deferred to first downstream skill |
-| 7b | project | <deferred> | default-applied | true | false | linear-server registered mid-/setup but unauthenticated; deferred to first downstream skill |
+| 7b | team | STE | user-supplied | false | true | resolved post-auth; only team in workspace (Stellarlab Mike's Sandbox) |
+| 7b | project | dpt-test-browser | user-supplied | false | true | created via Linear MCP after operator authenticated linear-server |
 | 7c | branch_template | {type}/{ticket-id}-{slug} | default-applied | true | false | tracker-mode default; not overridden |
 | 7d | user_facing_mode | false | default-applied | true | false | autonomous-mode all-false default applied |
 | 7d | packages_mode | false | default-applied | true | false | autonomous-mode all-false default applied |
